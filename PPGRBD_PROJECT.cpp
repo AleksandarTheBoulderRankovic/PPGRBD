@@ -7,12 +7,13 @@
 #include "CImg.h"
 #include <Eigen/SVD>
 #include <Eigen/Eigen>
+#include <cmath>
 
 using namespace cimg_library;
 using namespace Eigen;
 using namespace std;
 
-vector<double> CramersRule(vector<vector<int>> points) {
+vector<double> CramersRule(vector<vector<double>> &points) {
 
 
 
@@ -51,7 +52,128 @@ vector<double> CramersRule(vector<vector<int>> points) {
 	return lambdas;
 }
 
+Matrix3d& DLT_ALG(vector<vector<double>> &org_p, vector<vector<double>> &dst_p, int n) {
 
+	MatrixXd A;
+	MatrixXd B;
+	MatrixXd C;
+
+	int i = 1;
+
+	A.resize(2, 9);
+	B.resize(2, 9);
+	C.resize(4, 9);
+
+	A << 0, 0, 0,
+		-org_p[0][0] * dst_p[0][2], -org_p[0][1] * dst_p[0][2], -org_p[0][2] * dst_p[0][2],
+		org_p[0][0] * dst_p[0][1], org_p[0][1] * dst_p[0][1], org_p[0][2] * dst_p[0][1],
+		org_p[0][0] * dst_p[0][2], org_p[0][1] * dst_p[0][2], org_p[0][2] * dst_p[0][2],
+		0, 0, 0,
+		-org_p[0][0] * dst_p[0][0], -org_p[0][1] * dst_p[0][0], -org_p[0][2] * dst_p[0][0];
+
+	while (i < n) {
+		B << 0, 0, 0,
+			-org_p[i][0] * dst_p[i][2], -org_p[i][1] * dst_p[i][2], -org_p[i][2] * dst_p[i][2],
+			org_p[i][0] * dst_p[i][1], org_p[i][1] * dst_p[i][1], org_p[i][2] * dst_p[i][1],
+			org_p[i][0] * dst_p[i][2], org_p[i][1] * dst_p[i][2], org_p[i][2] * dst_p[i][2],
+			0, 0, 0,
+			-org_p[i][0] * dst_p[i][0], -org_p[i][1] * dst_p[i][0], -org_p[i][2] * dst_p[i][0];
+
+		C << A, B;
+		A.resize((i + 1) * 2, 9);
+		A = C;
+		C.resize((i + 2) * 2, 9);
+		i++;
+
+	}
+	cout << "ogromna matrica dimnzija (2*n, 9) na koju primenjujemo SVD: " << endl << endl;
+	std::cout << A << endl << endl;
+
+	//SVD dekompozicija A = UDV.transpose() - nas zanima samo zadnja kolona matricе V
+	BDCSVD<MatrixXd> svd(A, ComputeFullU | ComputeFullV);
+
+	//std::cout << svd.computeV() << endl;
+
+	std::cout << "Matrica V dobijena SVD dekompozicijom: " << endl << endl;
+	std::cout << svd.matrixV() << endl << endl;
+
+	MatrixXd V;
+	Matrix3d DLT;
+
+	V.resize(9, 9);
+
+	V << svd.matrixV();
+
+	//uzimamo zadnju kolonu matrice V delimo je sa V(0,0) i mnozimo sa Q(0, 0)
+	DLT << V(0, 8), V(1, 8), V(2, 8),
+		V(3, 8), V(4, 8), V(5, 8),
+		V(6, 8), V(7, 8), V(8, 8);
+
+	return DLT;
+}
+
+Matrix3d& naivni_ALG(vector<vector<double>> &org_p, vector<vector<double>> &dst_p) {
+
+	//D = lambda1*A + lambda2*B + lambda3*C - D je linearna kombinacija ostale 3 tacke
+	vector<double> lambdas;
+
+	//resavamo sistem uz pomoc Kramera i dobijamo lambde
+	lambdas = CramersRule(org_p);
+
+	cout << "lambde za oreginalne tacke: " << endl;
+	cout << lambdas[0] << " " << lambdas[1] << " " << lambdas[2] << endl << endl;
+
+	//matrica prelaska iz kanonskog oblika(tacke su A0, B0, C0, D0) u nas cetvorougao ABCD: kolone su lambda1*A, lambda2*B i lambda3*C
+	Matrix3d P;
+	P << org_p[0][0] * lambdas[0], org_p[1][0] * lambdas[1], org_p[2][0] * lambdas[2],
+		org_p[0][1] * lambdas[0], org_p[1][1] * lambdas[1], org_p[2][1] * lambdas[2],
+		org_p[0][2] * lambdas[0], org_p[1][2] * lambdas[1], org_p[2][2] * lambdas[2];
+
+	cout << "matrica prelaska iz kanonskog oblika u oreginalne tacke:" << endl << endl;
+	cout << P << endl << endl;
+
+
+	//Provera da li nas P transformise iz D0 u D
+	MatrixXd D0;
+	D0.resize(3, 1);
+	D0 << 1, 1, 1;
+	MatrixXd D;
+
+	D = P * D0;
+
+	cout << "Provera da li nas P transformise iz D0 u D: " << endl;
+	cout << D << endl << endl;
+
+	vector<double> lambdas2;
+
+	lambdas2 = CramersRule(dst_p);
+
+	cout << "lambde za tacke slike: " << endl;
+	cout << lambdas2[0] << " " << lambdas2[1] << " " << lambdas2[2] << endl << endl;
+
+	//matrica prelaska iz kanonskog oblika u tacke Ap, Bp, Cp, Dp
+	Matrix3d Pp;
+	Pp << dst_p[0][0] * lambdas2[0], dst_p[1][0] * lambdas2[1], dst_p[2][0] * lambdas2[2],
+		dst_p[0][1] * lambdas2[0], dst_p[1][1] * lambdas2[1], dst_p[2][1] * lambdas2[2],
+		dst_p[0][2] * lambdas2[0], dst_p[1][2] * lambdas2[1], dst_p[2][2] * lambdas2[2];
+
+	cout << "matrica prelaska iz kanonskog oblika u tacke slike:" << endl << endl;
+	std::cout << Pp << endl << endl;
+
+	//provera da li iz D0 preko P dolazimo do Dp
+	MatrixXd Dp;
+
+	Dp = Pp * D0;
+
+	cout << "Provera da li nas Pp transformise iz D0 u Dp: " << endl;
+	std::cout << Dp << endl << endl;
+
+	//matrica Pp*(P)^(-1) predstavlja matricu prelaska iz ABCD u ApBpCpDp
+	Matrix3d Q;
+	Q = Pp * P.inverse();
+
+	return Q;
+}
 
 int main() {
 
@@ -61,8 +183,8 @@ int main() {
 	//vector<vector<int>> click_points;
 
 	//ovde cuvamo tacke na koje kliknemo u interfejsu
-	vector<vector<int>> org_p;
-	vector<int> click_tmp;
+	vector<vector<double>> org_p;
+	vector<double> click_tmp;
 
 	//kreira se slika koju ucitavamo iz bmp fajla
 	CImg<unsigned char> image("building.bmp");
@@ -142,35 +264,36 @@ int main() {
 	}
 
 	cout << "Oreginalne tacke:" << endl;
-	for (vector<int> p : org_p) {
-		for (int e : p) {
+	for (vector<double> p : org_p) {
+		for (double e : p) {
 			std::cout << e << " ";
 		}
 		std::cout << endl;
 	}
+	cout << endl;
 	
 	//broj tacaka koje unosi korisnik
 	int n;
 
 	n = org_p.size();
-
+	
 	//sad imam unos tacaka preko interfejsa ali ako zatreba moze i obican unos
 	/*
 	//ovaj deo ucitava oreginalne tacke(A, B, C, D) figure koje zelimo da projektujemo
-	//vector<vector<int>> org_p;
+	vector<vector<double>> org_p;
 	
 	//pomocni int za ucitavanje
-	int x;
+	double x;
 
 	//pomocni vektor za ucitavanje
-	std::vector<int> tmp;
+	std::vector<double> tmp;
 
 	//brojac za pojedinacne tacke, kad prodje 3 broja resetuje se
 	int counter = 0;
 
 	//brojac za petlju 
 	int brojac = 0;
-
+	int n;
 	cout << "unesite broj tacaka" << endl;
 	cin >> n;
 	cout << "unesite oreginalne tacke: " << endl;
@@ -190,38 +313,11 @@ int main() {
 		}
 	}
 	*/
-
-	//D = lambda1*A + lambda2*B + lambda3*C - D je linearna kombinacija ostale 3 tacke
-	vector<double> lambdas;
-	
-	//resavamo sistem uz pomoc Kramera i dobijamo lambde
-	lambdas = CramersRule(org_p);
-
-	std::cout << lambdas[0] << " " << lambdas[1] << " " << lambdas[2] << endl;
-
-	//matrica prelaska iz kanonskog oblika(tacke su A0, B0, C0, D0) u nas cetvorougao ABCD: kolone su lambda1*A, lambda2*B i lambda3*C
-	Matrix3d P;
-	P << org_p[0][0] * lambdas[0], org_p[1][0] * lambdas[1], org_p[2][0] * lambdas[2],
-		 org_p[0][1] * lambdas[0], org_p[1][1] * lambdas[1], org_p[2][1] * lambdas[2],
-		 org_p[0][2] * lambdas[0], org_p[1][2] * lambdas[1], org_p[2][2] * lambdas[2];
-
-	std::cout << P << endl;
-
-	//Provera da li nas P transformise iz D0 u D
-	MatrixXd D0;
-	D0.resize(3, 1);
-	D0 << 1, 1, 1;
-	MatrixXd D;
-
-	D = P * D0;
-
-	std::cout << D << endl;
-
 	//Sve isto ko za oreginalne tacke - ovde se samo radi o tackama u koje zelimo da projektujemo nase oreginalne
 	// tacke Ap, Bp, Cp, Dp
-	vector<vector<int>> dst_p;
-	int x2;
-	std::vector<int> tmp2;
+	vector<vector<double>> dst_p;
+	double x2;
+	std::vector<double> tmp2;
 	int counter2 = 0, brojac2 = 0;
 
 	std::cout << "Unesite tacke slike: " << endl;
@@ -242,50 +338,22 @@ int main() {
 			counter2 = 0;
 		}
 	}
-
-
-	for (vector<int> p : dst_p) {
-		for (int e : p) {
-			std::cout << e << " ";
-		}
-		std::cout << endl;
-	}
 	
+	Matrix3d Q = naivni_ALG(org_p, dst_p);
 
-
-	vector<double> lambdas2;
-
-	lambdas2 = CramersRule(dst_p);
-
-	//matrica prelaska iz kanonskog oblika u tacke Ap, Bp, Cp, Dp
-	Matrix3d Pp;
-	Pp << dst_p[0][0] * lambdas2[0], dst_p[1][0] * lambdas2[1], dst_p[2][0] * lambdas2[2],
-		  dst_p[0][1] * lambdas2[0], dst_p[1][1] * lambdas2[1], dst_p[2][1] * lambdas2[2],
-		  dst_p[0][2] * lambdas2[0], dst_p[1][2] * lambdas2[1], dst_p[2][2] * lambdas2[2];
-
-	std::cout << Pp << endl;
-
-	//provera da li iz D0 preko P dolazimo do Dp
-	MatrixXd Dp;
-
-	Dp = Pp * D0;
-
-	std::cout << Dp << endl;
-
-	//matrica Pp*(P)^(-1) predstavlja matricu prelaska iz ABCD u ApBpCpDp
-	Matrix3d Q;
-	Q = Pp * P.inverse();
-
-	std::cout << Q << endl;
-
+	cout << "matrica transformacije dobijena naivnim algoritmom: " << endl << endl;
+	cout << Q << endl << endl;
+	
 	//Provera da li idemo iz D u Dp
 	MatrixXd Provera;
+	MatrixXd D;
+	D.resize(3, 1);
+	D << org_p[3][0], org_p[3][1], org_p[3][2];
 
 	Provera = Q * D;
 
-	std::cout << Provera << endl;
-
-
+	std::cout << "Provera da li idemo iz D u Dp naivnim algoritmom" << endl << endl << Provera << endl << endl;
+	
 	//iscrtavanje izmenjene oreginalne slike
 	MatrixXd TmpOrgPoint;
 	TmpOrgPoint.resize(3, 1);
@@ -336,7 +404,7 @@ int main() {
 	//invertovana Q matrica
 	Matrix3d Qinv;
 	Qinv = Q.inverse();
-
+	
 	//drugi nacin za konstrukciju slike
 	//iteriramo kroz sve piksele slike koju konstruisemo
 	for (int r = 0; r < height; r++)
@@ -377,71 +445,163 @@ int main() {
 	visu.display(draw_disp);
 	while (!draw_disp.is_closed())
 		draw_disp.wait();
-
+	
 	//DLT
-	//ove tri matrice nam pomazu da se izgradi ona velika (broj_tacaka*2) X 9 matrica
-	MatrixXd A;	
-	MatrixXd B;
-	MatrixXd C;
-
-	int i = 1;
-
-	A.resize(2, 9);
-	B.resize(2, 9);	
-	C.resize(4, 9);
-
-		A << 0, 0, 0,
-			-org_p[0][0] * dst_p[0][2], -org_p[0][1] * dst_p[0][2], -org_p[0][2] * dst_p[0][2],
-			org_p[0][0] * dst_p[0][1], org_p[0][1] * dst_p[0][1], org_p[0][2] * dst_p[0][1],
-			org_p[0][0] * dst_p[0][2], org_p[0][1] * dst_p[0][2], org_p[0][2] * dst_p[0][2],
-			0, 0, 0,
-			-org_p[0][0] * dst_p[0][0], -org_p[0][1] * dst_p[0][0], -org_p[0][2] * dst_p[0][0];
-		
-		while (i < n) {
-			B << 0, 0, 0,
-				-org_p[i][0] * dst_p[i][2], -org_p[i][1] * dst_p[i][2], -org_p[i][2] * dst_p[i][2],
-				org_p[i][0] * dst_p[i][1], org_p[i][1] * dst_p[i][1], org_p[i][2] * dst_p[i][1],
-				org_p[i][0] * dst_p[i][2], org_p[i][1] * dst_p[i][2], org_p[i][2] * dst_p[i][2],
-				0, 0, 0,
-				-org_p[i][0] * dst_p[i][0], -org_p[i][1] * dst_p[i][0], -org_p[i][2] * dst_p[i][0];
-			
-			C << A, B;
-			A.resize((i+1)*2, 9);
-			A = C;
-			C.resize((i+2)*2, 9);
-			i++;
-		
-		}
-
-		std::cout << A << endl;
-
-		//SVD dekompozicija A = UDV.transpose() - nas zanima samo zadnja kolona matricе V
-		BDCSVD<MatrixXd> svd(A, ComputeFullU | ComputeFullV);
-
-		std::cout << svd.computeV() << endl;
-		std::cout << svd.matrixV() << endl;
-
-		MatrixXd V;
-		Matrix3d DLT;
-
-		V.resize(9, 9);
-
-		V << svd.matrixV();
-
-		//uzimamo zadnju kolonu matrice V delimo je sa V(0,0) i mnozimo sa Q(0, 0)
-		DLT << V(0, 8) * Q(0, 0) / V(0, 8), V(1, 8) * Q(0, 0) / V(0, 8), V(2, 8) * Q(0, 0) / V(0, 8),
-			V(3, 8) * Q(0, 0) / V(0, 8), V(4, 8) * Q(0, 0) / V(0, 8), V(5, 8) * Q(0, 0) / V(0, 8),
-			V(6, 8) * Q(0, 0) / V(0, 8), V(7, 8) * Q(0, 0) / V(0, 8), V(8, 8) * Q(0, 0) / V(0, 8);
 
 		//DLT matrica treba da bude slicna kao Q matrica koju smo dobili iz naivnog algoritma
-		std::cout << DLT << endl;
+		Matrix3d V = DLT_ALG(org_p, dst_p, n);
+		cout << "Matrica dobijena DLT algoritmom: " << endl << endl;
+		cout << V << endl << endl;
+
+		Matrix3d DLT_skalirano;
+		//uzimamo zadnju kolonu matrice V delimo je sa V(0,0) i mnozimo sa Q(0, 0)
+		DLT_skalirano << V(0, 0)* Q(0, 0) / V(0, 0), V(0, 1)* Q(0, 0) / V(0, 0), V(0, 2)* Q(0, 0) / V(0, 0),
+			V(1, 0)* Q(0, 0) / V(0, 0), V(1, 1)* Q(0, 0) / V(0, 0), V(1, 2)* Q(0, 0) / V(0, 0),
+			V(2, 0)* Q(0, 0) / V(0, 0), V(2, 1)* Q(0, 0) / V(0, 0), V(2, 2)* Q(0, 0) / V(0, 0);
+
+		cout << "Matrica transformacije dobijena DLT-om ali skalirana:" << endl << endl;
+		cout << DLT_skalirano << endl << endl;
+
 
 		//Provera da li idemo iz D u Dp
 		MatrixXd Provera3;
 
-		Provera3 = DLT * D;
+		Provera3 = DLT_skalirano * D;
 
-		std::cout << Provera3 << endl;
+		cout << "provera da li idemo iz D u Dp sa skaliranom DLT matricom:" << endl << endl;
+		cout << Provera3 << endl;
+
+	//Normalizovani DLT
+
+		//Prvo trazimo teziste sistema tecaka (oreginalnih i slike)
+		int sum_x = 0, sum_y = 0, sum_x_s = 0, sum_y_s = 0;
+		for (int i = 0; i < n; i++) {
+			sum_x += org_p[i][0];
+
+			sum_y += org_p[i][1];
+
+			sum_x_s += dst_p[i][0];
+
+			sum_y_s += dst_p[i][1];
+		}
+
+		vector<double> centar;
+		centar.push_back(sum_x*1.0 / n);
+		centar.push_back(sum_y*1.0 / n);
+
+		vector<double> centar_s;
+		centar_s.push_back(sum_x_s * 1.0 / n);
+		centar_s.push_back(sum_y_s * 1.0 / n);
+
+
+		//koordinate centra za oreginal i sliku:
+		cout << "centri oreginala i slike" << endl;
+		cout << centar[0] << " " << centar[1] << endl;
+
+		cout << centar_s[0] << " " << centar_s[1] << endl << endl;
+
+		//racunamo prosecnu razdaljinu drugih tacaka od centra
+		double sum_len=0, sum_len_s = 0;
+		
+		for (int i = 0; i < n; i++) {
+			sum_len += sqrt((org_p[i][0]-centar[0])* (org_p[i][0] - centar[0]) + (org_p[i][1] - centar[1])*(org_p[i][1] - centar[1]));
+
+			sum_len_s += sqrt((dst_p[i][0] - centar_s[0]) * (dst_p[i][0] - centar_s[0]) + (dst_p[i][1] - centar_s[1]) * (dst_p[i][1] - centar_s[1]));
+			
+		}
+		cout << "prosecno rastojanje od centra kod oreginalnih tacaka:" << endl;
+		sum_len = sum_len / n;
+		cout << sum_len << endl << endl;
+		
+
+		cout << "prosecno rastojanje od centra kod tacaka slike:" << endl;
+		sum_len_s = sum_len_s / n;
+		cout << sum_len_s << endl << endl;
+
+		//sad pravimo matrice T i Tp
+		Matrix3d T;
+
+		T << (sqrt(2) / sum_len), 0, -centar[0],
+			 0, (sqrt(2) / sum_len), -centar[1],
+			 0, 0, 1;
+
+		Matrix3d Tp;
+
+		Tp << (sqrt(2) / sum_len_s), 0, -centar_s[0],
+			0, (sqrt(2) / sum_len_s), -centar_s[1],
+			0, 0, 1;
+
+		//transformacija koordinata oreginala i slika u normalizovane koordinate
+		cout << "Matrice T i Tp: " << endl << T << endl << endl << Tp << endl << endl;
+		MatrixXd tmpPoint;
+		MatrixXd tmpNormPoint;
+		tmpPoint.resize(3, 1);
+
+		vector<vector <double>> norm_org_p;
+		vector<double> tmpVec;
+		for (int i = 0; i < n; i++) {
+			tmpPoint << org_p[i][0], org_p[i][1], org_p[i][2];
+			tmpNormPoint = T * tmpPoint;
+			tmpVec.push_back(tmpNormPoint(0, 0));
+			tmpVec.push_back(tmpNormPoint(1, 0));
+			tmpVec.push_back(tmpNormPoint(2, 0));
+			norm_org_p.push_back(tmpVec);
+			tmpVec.clear();	
+		}
+
+		cout << "nove normalizovane tacke oreginala:" << endl << endl;
+		for (vector<double> aca : norm_org_p) {
+			for (double a : aca) {
+				cout << a << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+
+		vector<vector <double>> norm_org_p_s;
+
+		for (int i = 0; i < n; i++) {
+			tmpPoint << dst_p[i][0], dst_p[i][1], dst_p[i][2];
+			tmpNormPoint = Tp * tmpPoint;
+			tmpVec.push_back(tmpNormPoint(0, 0));
+			tmpVec.push_back(tmpNormPoint(1, 0));
+			tmpVec.push_back(tmpNormPoint(2, 0));
+			norm_org_p_s.push_back(tmpVec);
+			tmpVec.clear();
+		}
+		cout << "nove normalizovane tacke slike:" << endl << endl;
+		for (vector<double> aca : norm_org_p_s) {
+			for (double a : aca) {
+				cout << a << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+		
+		Matrix3d normDLT = DLT_ALG(norm_org_p, norm_org_p_s, n);
+
+		cout << "Matrica dobijena primenom DLT-a nad normiranim tackama:" << endl << normDLT << endl << endl;
+
+		Matrix3d lastMatrix;
+
+		lastMatrix = Tp.inverse() * normDLT * T;
+
+		cout << "matrica dobijena normalizovanim DLT algoritmom:" << endl << lastMatrix << endl << endl;
+
+		Matrix3d skalirano_normirano_DLT;
+
+		skalirano_normirano_DLT << lastMatrix(0, 0)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(0, 1)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(0, 2)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(1, 0)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(1, 1)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(1, 2)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(2, 0)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(2, 1)* Q(0, 0) / lastMatrix(0, 0)
+			, lastMatrix(2, 2)* Q(0, 0) / lastMatrix(0, 0);
+
+		cout << "poslednja stvar ikada:" << endl << endl << skalirano_normirano_DLT << endl << endl;
+
 
 		return 0;
 }
