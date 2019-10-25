@@ -6,3 +6,5 @@ Takodje smo trebali da napravimo korisnicki interfejs na kome korisnik moze da i
 
 Projekat je radjen u C++-u koristeci visual studio.
 Biblioteke koje sam koristio su Eigen i CImg.
+
+Dodao sam aplikaciju ako neko zeli da je pokrene. 
