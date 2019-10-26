@@ -59,7 +59,7 @@ Matrix3d& naivni_ALG(vector<vector<double>>& org_p, vector<vector<double>>& dst_
 	//resavamo sistem uz pomoc Kramera i dobijamo lambde
 	lambdas = CramersRule(org_p);
 
-	cout << "lambde za oreginalne tacke: " << endl;
+	cout << "lambde za originalne tacke: " << endl;
 	cout << lambdas[0] << " " << lambdas[1] << " " << lambdas[2] << endl << endl;
 
 	//matrica prelaska iz kanonskog oblika(tacke su A0, B0, C0, D0) u nas cetvorougao ABCD: kolone su lambda1*A, lambda2*B i lambda3*C
@@ -68,7 +68,7 @@ Matrix3d& naivni_ALG(vector<vector<double>>& org_p, vector<vector<double>>& dst_
 		org_p[0][1] * lambdas[0], org_p[1][1] * lambdas[1], org_p[2][1] * lambdas[2],
 		org_p[0][2] * lambdas[0], org_p[1][2] * lambdas[1], org_p[2][2] * lambdas[2];
 
-	cout << "matrica prelaska iz kanonskog oblika u oreginalne tacke:" << endl << endl;
+	cout << "matrica prelaska iz kanonskog oblika u originalne tacke:" << endl << endl;
 	cout << P << endl << endl;
 
 
@@ -176,7 +176,7 @@ Matrix3d& DLT_ALG(vector<vector<double>> &org_p, vector<vector<double>> &dst_p, 
 
 Matrix3d& normalizovani_DLT(vector<vector<double>> &org_p, vector<vector<double>> &dst_p, int n)
 {
-	//Prvo trazimo teziste sistema tecaka (oreginalnih i slike)
+	//Prvo trazimo teziste sistema tecaka (originalnih i slike)
 	int sum_x = 0, sum_y = 0, sum_x_s = 0, sum_y_s = 0;
 	for (int i = 0; i < n; i++) {
 		sum_x += org_p[i][0];
@@ -197,8 +197,8 @@ Matrix3d& normalizovani_DLT(vector<vector<double>> &org_p, vector<vector<double>
 	centar_s.push_back(sum_y_s * 1.0 / n);
 
 
-	//koordinate centra za oreginal i sliku:
-	cout << "centri oreginala i slike" << endl;
+	//koordinate centra za original i sliku:
+	cout << "centri originala i slike" << endl;
 	cout << centar[0] << " " << centar[1] << endl;
 
 	cout << centar_s[0] << " " << centar_s[1] << endl << endl;
@@ -212,7 +212,7 @@ Matrix3d& normalizovani_DLT(vector<vector<double>> &org_p, vector<vector<double>
 		sum_len_s += sqrt((dst_p[i][0] - centar_s[0]) * (dst_p[i][0] - centar_s[0]) + (dst_p[i][1] - centar_s[1]) * (dst_p[i][1] - centar_s[1]));
 
 	}
-	cout << "prosecno rastojanje od centra kod oreginalnih tacaka:" << endl;
+	cout << "prosecno rastojanje od centra kod originalnih tacaka:" << endl;
 	sum_len = sum_len / n;
 	cout << sum_len << endl << endl;
 
@@ -221,7 +221,7 @@ Matrix3d& normalizovani_DLT(vector<vector<double>> &org_p, vector<vector<double>
 	sum_len_s = sum_len_s / n;
 	cout << sum_len_s << endl << endl;
 
-	//sad pravimo matrice T i Tp koje normalizuju tacke oreginala i slike
+	//sad pravimo matrice T i Tp koje normalizuju tacke originala i slike
 	Matrix3d T;
 
 	T << (sqrt(2) / sum_len), 0, -centar[0],
@@ -234,7 +234,7 @@ Matrix3d& normalizovani_DLT(vector<vector<double>> &org_p, vector<vector<double>
 		0, (sqrt(2) / sum_len_s), -centar_s[1],
 		0, 0, 1;
 
-	//transformacija koordinata oreginala i slika u normalizovane koordinate
+	//transformacija koordinata originala i slika u normalizovane koordinate
 	cout << "Matrice T i Tp: " << endl << T << endl << endl << Tp << endl << endl;
 	MatrixXd tmpPoint;
 	MatrixXd tmpNormPoint;
@@ -252,7 +252,7 @@ Matrix3d& normalizovani_DLT(vector<vector<double>> &org_p, vector<vector<double>
 		tmpVec.clear();
 	}
 
-	cout << "nove normalizovane tacke oreginala:" << endl << endl;
+	cout << "nove normalizovane tacke originala:" << endl << endl;
 	for (vector<double> aca : norm_org_p) {
 		for (double a : aca) {
 			cout << a << " ";
@@ -308,7 +308,7 @@ int main() {
 	//visina i sirina slike
 	int width = 600;
 	int height = 400;
-	cout << "Ako zelite da sami unosite oreginalne tacke unesite broj 1" << endl;
+	cout << "Ako zelite da sami unosite originalne tacke unesite broj 1" << endl;
 	cout << "Ako pak zelite da birate tacke kao piksele slike koja se ispravlja unesite 2" << endl;
 	cout << "Napomena: ako ste izbrali opciju 1 ne dolazi do ispisa slike..." << endl;
 	cout << "odgovor: ";
@@ -325,7 +325,7 @@ int main() {
 	//pomocna slika zato sto na prvoj imam neko obelezavanje izabranih tacaka koje ne zelim da imam na konstruisanoj slici
 	CImg<unsigned char> image2("Perfection.bmp");
 
-	//pravimo novu sliku koja je iste visine i sirine kao oreginalna ona je skroz crna
+	//pravimo novu sliku koja je iste visine i sirine kao originalna ona je skroz crna
 	CImg<unsigned char> visu(width, height, 1, 3, 0);
 
 	if (odgovor == 2) {
@@ -356,7 +356,7 @@ int main() {
 				tmp.push_back(1);
 				//click_points.push_back(click_tmp);
 
-				//ovde taj privremeni vektor upisujemo u vector oreginalnih_tacaka
+				//ovde taj privremeni vektor upisujemo u vector originalnih_tacaka
 				org_p.push_back(tmp);
 				tmp.clear();
 
@@ -395,7 +395,7 @@ int main() {
 			}
 	}
 
-	cout << "Oreginalne tacke:" << endl;
+	cout << "originalne tacke:" << endl;
 	for (vector<double> p : org_p) {
 		for (double e : p) {
 			std::cout << e << " ";
@@ -411,7 +411,7 @@ int main() {
 	//Unos koordinata ako je izabrana opcija 1
 	
 	if (odgovor == 1) {
-		//ovaj deo ucitava oreginalne tacke(A, B, C, D) figure koje zelimo da projektujemo
+		//ovaj deo ucitava originalne tacke(A, B, C, D) figure koje zelimo da projektujemo
 
 		//pomocni int za ucitavanje
 		double x;
@@ -424,7 +424,7 @@ int main() {
 		
 		cout << "unesite broj tacaka" << endl;
 		cin >> n;
-		cout << "unesite oreginalne tacke: " << endl;
+		cout << "unesite originalne tacke: " << endl;
 		while (brojac < (n * 2)) {
 
 			cin >> x;
@@ -442,7 +442,7 @@ int main() {
 		}
 	}
 
-	//Sve isto ko za oreginalne tacke - ovde se samo radi o tackama u koje zelimo da projektujemo nase oreginalne
+	//Sve isto ko za originalne tacke - ovde se samo radi o tackama u koje zelimo da projektujemo nase originalne
 	// tacke Ap, Bp, Cp, Dp npr.
 	vector<vector<double>> dst_p;
 	double x2;
@@ -489,7 +489,7 @@ int main() {
 		//drugi prozor gde crtamo projektovanu sliku
 		CImgDisplay draw_disp(visu, "The processed image");
 
-		//Prozor sa oreginalnom slikom da mogu da se vide napravljene razlike
+		//Prozor sa originalnom slikom da mogu da se vide napravljene razlike
 		CImgDisplay original_picture_2(image, "Original picture");
 
 		//pomeramo prozore da interfejs izgleda lepse
@@ -506,7 +506,7 @@ int main() {
 
 		int cp, rp, cpp, rpp;
 
-		//dva nacina za konstrukciju izmenjene slike - kada iteriramo po pikselima oreginalne slike i koristimo Q matricu
+		//dva nacina za konstrukciju izmenjene slike - kada iteriramo po pikselima originalne slike i koristimo Q matricu
 		//a mozemo i da iteriramo kroz sliku i koristimo matricu Q.inverse()
 		//radimo drugi nacin zato sto daje bolje rezultate
 
@@ -519,7 +519,7 @@ int main() {
 			{
 				TmpDstPoint << c, r, 1;
 
-				//trzimo koordinate pikela oreginalne slike koji odgovaraju trenutnom pikselu slike koju konstruisemo
+				//trzimo koordinate pikela originalne slike koji odgovaraju trenutnom pikselu slike koju konstruisemo
 				TmpOrgPoint = Qinv * TmpDstPoint;
 
 				//pretvaramo homogene koordinate piksela u afine
@@ -538,7 +538,7 @@ int main() {
 				if (rpp > height || rpp < 0 || cpp > width || cpp < 0)
 					continue;
 
-				//iscrtavamo piksel na odgovarajucoj lokaciji sa istom bojom kao u oreginalnoj slici
+				//iscrtavamo piksel na odgovarajucoj lokaciji sa istom bojom kao u originalnoj slici
 				visu(c, r, 0, 0) = (int)image2(cp, rp, 0, 0); //R
 				visu(c, r, 0, 1) = (int)image2(cp, rp, 0, 1); //G
 				visu(c, r, 0, 2) = (int)image2(cp, rp, 0, 2); //B
@@ -615,7 +615,7 @@ int main() {
 		// da li je matrica P koja se dobije DLT alg ista kao i matrica 
 		// Tp.inv * Ptran * T - po svemu bi trebalo, ali...
 
-		//stvaram "nasumicne" transformacije za tacke oreginala i slike
+		//stvaram "nasumicne" transformacije za tacke originala i slike
 		Matrix3d testT;
 
 		testT << 0, 1, 2,
@@ -629,7 +629,7 @@ int main() {
 				 0, 0, 1;
 
 		//primena transformacija na nase tacke
-		//transformacija koordinata oreginala i slika u druge koordinate
+		//transformacija koordinata originala i slika u druge koordinate
 		
 		MatrixXd tmpPoint2;
 		MatrixXd tmpNormPoint2;
@@ -647,7 +647,7 @@ int main() {
 			tmpVec2.clear();
 		}
 
-		cout << "nove transformisane tacke oreginala:" << endl << endl;
+		cout << "nove transformisane tacke originala:" << endl << endl;
 		for (vector<double> aca : ch_org_p) {
 			for (double a : aca) {
 				cout << a << " ";
@@ -686,7 +686,7 @@ int main() {
 		Matrix3d actualDLT;
 
 		actualDLT = testTp.inverse() * DLT_nad_transformisanim_tackama * testT;
-		cout << "DLT koji bi trebalo da transformise oreginalne tacke:" << endl << endl;
+		cout << "DLT koji bi trebalo da transformise originalne tacke:" << endl << endl;
 		cout << actualDLT << endl << endl;
 
 		cout << "Matrica dobijena DLT algoritmom: " << endl << endl;
@@ -708,7 +708,7 @@ int main() {
 		cout << "Skaliran DLT koji smo dobili iz Tp.inv() * DLT * T " << endl << endl;
 		cout << skalirano_actualDLT << endl << endl;
 
-		cout << "Matrica koja se dobije kao rezultat DLT-a na oreginalnim tackama" << endl << endl;
+		cout << "Matrica koja se dobije kao rezultat DLT-a na originalnim tackama" << endl << endl;
 		cout << DLT_skalirano << endl << endl;
 	
 		return 0;
