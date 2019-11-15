@@ -553,7 +553,6 @@ int main() {
 		image.display(original_picture_2);
 		while (!draw_disp.is_closed() && !original_picture_2.is_closed()) {
 			draw_disp.wait();
-			original_picture_2.wait();
 		}
 	}
 
